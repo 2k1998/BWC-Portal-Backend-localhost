@@ -1,5 +1,5 @@
 # models.py - FIXED VERSION (Remove the incorrect import line)
-from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, DateTime, Table, Enum, Text, Numeric
+from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, DateTime, Table, Enum, Text, Numeric, JSON
 from sqlalchemy.orm import relationship, validates
 from datetime import datetime, timezone
 from database import Base
@@ -97,6 +97,9 @@ class User(Base):
     role = Column(String, default="Agent", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     profile_picture_url = Column(String, nullable=True)
+
+    # --- Add this line for permissions ---
+    permissions = Column(JSON, default=list)  # Store array of permission strings
 
     @property
     def full_name(self) -> str:
@@ -222,6 +225,10 @@ class Car(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     company = relationship("Company", back_populates="cars")
     rentals = relationship("Rental", back_populates="car", cascade="all, delete-orphan")
+    
+    # Add these relationships
+    income_records = relationship("CarIncome", back_populates="car", cascade="all, delete-orphan")
+    expense_records = relationship("CarExpense", back_populates="car", cascade="all, delete-orphan")
 
 class Rental(Base):
     __tablename__ = "rentals"
@@ -238,6 +245,9 @@ class Rental(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     car_id = Column(Integer, ForeignKey("cars.id"), nullable=False)
     car = relationship("Car", back_populates="rentals")
+    
+    # Add this relationship
+    income_records = relationship("CarIncome", back_populates="rental", cascade="all, delete-orphan")
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -526,3 +536,40 @@ class Payment(Base):
     def is_expense(self):
         """Returns True if this payment represents an expense"""
         return not self.is_income
+
+class CarIncome(Base):
+    __tablename__ = "car_incomes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    rental_id = Column(Integer, ForeignKey("rentals.id"), nullable=True)
+    car_id = Column(Integer, ForeignKey("cars.id"), nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    description = Column(Text, nullable=True)
+    transaction_date = Column(Date, nullable=False)
+    customer_name = Column(String(200), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    
+    # Relationships
+    rental = relationship("Rental", back_populates="income_records")
+    car = relationship("Car", back_populates="income_records")
+    created_by = relationship("User")
+
+class CarExpense(Base):
+    __tablename__ = "car_expenses"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    car_id = Column(Integer, ForeignKey("cars.id"), nullable=False)
+    service_type = Column(String(50), nullable=False)  # maintenance, repair, fuel, insurance, etc.
+    amount = Column(Numeric(10, 2), nullable=False)
+    description = Column(Text, nullable=True)
+    transaction_date = Column(Date, nullable=False)
+    vendor = Column(String(200), nullable=False)
+    mileage = Column(Integer, nullable=True)
+    receipt_url = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    
+    # Relationships
+    car = relationship("Car", back_populates="expense_records")
+    created_by = relationship("User")
