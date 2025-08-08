@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.docs import get_swagger_ui_html
 from routers import (
-    auth, tasks, groups, calendar, companies, events, cars, rentals, reports, 
-    notifications, contacts, daily_calls, projects, sales, payments  # <-- Add sales, payments
+    auth, tasks, groups, calendar, companies, events, cars, rentals, reports,
+    notifications, contacts, daily_calls, projects, sales, payments, car_finance  # <-- added car_finance
 )
 import os
 
@@ -55,8 +55,9 @@ app.include_router(notifications.router)
 app.include_router(contacts.router)
 app.include_router(daily_calls.router)
 app.include_router(projects.router)
-app.include_router(sales.router)      # <-- Add sales router
-app.include_router(payments.router)   # <-- Add payments router
+app.include_router(sales.router)
+app.include_router(payments.router)
+app.include_router(car_finance.router)  # <-- added
 
 @app.get("/")
 def read_root():
